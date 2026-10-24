@@ -12,7 +12,7 @@ const failures = [];
 const check = (ok, msg) => { if (!ok) failures.push(msg); };
 
 // Tanpa em dash.
-check(!html.includes('—'), 'ada tanda em dash di file HTML');
+check(!html.includes(String.fromCharCode(0x2014)), 'ada tanda em dash di file HTML');
 
 // Satu file: tidak ada <script src>, <img>, <audio>, <video>, <iframe>.
 check(!/<script[^>]+src=/i.test(html), 'ada <script src>');
