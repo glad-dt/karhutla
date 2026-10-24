@@ -47,7 +47,21 @@ for (const [k, v] of Object.entries(constants)) {
 }
 check(/SPARKS\s*=\s*\[6,\s*14,\s*22,\s*31,\s*41,\s*53\]/.test(script), 'SPARKS harus [6,14,22,31,41,53]');
 check(/bom-air-rimba-best/.test(script), 'kunci localStorage bom-air-rimba-best hilang');
-check(!/\bfetch\(|XMLHttpRequest|new Audio\(|AudioContext/.test(script), 'skrip memanggil jaringan atau audio');
+check(!/\bfetch\(|XMLHttpRequest|new Audio\(/.test(script), 'skrip memanggil jaringan atau memuat berkas audio');
+check(!/data:audio|\.mp3|\.wav|\.ogg/i.test(html), 'ada aset audio');
+
+// Suara sintetis: AudioContext dibuat satu kali, hanya di ensureAudio, dan ensureAudio hanya dipanggil dari gestur.
+check((script.match(/new AC\(/g) || []).length === 1 && !/new (webkit)?AudioContext/.test(script), 'AudioContext harus dibuat tepat satu kali lewat `new AC(`');
+const ea = script.match(/function ensureAudio\(\) \{[\s\S]*?\n\}\n/);
+check(ea && /new AC\(/.test(ea[0]), '`new AC(` harus berada di dalam ensureAudio');
+check(/pointerdown', e => \{\s*e\.preventDefault\(\); ensureAudio\(\)/.test(script), 'ensureAudio harus dipanggil di pointerdown');
+check(/goBtn\.addEventListener\('click', \(\) => \{ ensureAudio\(\)/.test(script), 'ensureAudio harus dipanggil di klik Mulai');
+check((script.match(/ensureAudio\(\)/g) || []).length === 5, 'ensureAudio harus muncul tepat 5 kali: definisi, pointerdown, Mulai, Main lagi, setSound');
+
+// Tingkat dan bom: Normal dan bom biasa harus sama dengan brief.
+check(/\{ name: 'Normal', p: 1, wind: 1, sparks: SPARKS \}/.test(script), 'tingkat Normal harus p 1, wind 1, sparks SPARKS');
+check(/\{ r: R_BOMB, cost: 1, speed: PLANE_SPEED, size: 1 \}/.test(script), 'bom biasa harus memakai R_BOMB, 1 isi, PLANE_SPEED');
+check(/R_BIG\s*=\s*3\.6/.test(script) && /COST_BIG\s*=\s*2/.test(script), 'konstanta bom besar R_BIG 3.6 dan COST_BIG 2');
 
 // Tidak ada radius hasil hitungan yang bisa negatif tanpa pengaman: grow dibatasi >= 0.
 check(/Math\.max\(0,\s*Math\.min\(1,\s*\(animT - since\[i\]\)/.test(script), 'pengaman Math.max(0, ...) pada faktor api hilang');

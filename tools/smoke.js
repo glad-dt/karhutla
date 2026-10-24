@@ -6,7 +6,16 @@ const { readHtml, extractScript } = require('./lib');
 
 const script = extractScript(readHtml());
 const WIDTHS = process.argv.slice(2).map(Number).filter(Boolean);
-const RUNS_PER_WIDTH = 3;
+const EXPECT = {
+  0: { p: 0.8, wind: 0.8, sparks: [6, 14, 22, 31] },
+  1: { p: 1, wind: 1, sparks: [6, 14, 22, 31, 41, 53] },
+  2: { p: 1.2, wind: 1.15, sparks: [6, 12, 18, 25, 32, 40, 47, 53] },
+};
+// Tiap lebar: satu permainan per tingkat (bom besar dipakai di tingkat ganjil) dan satu dengan suara mati.
+const VARIANTS = [
+  { level: 0, big: false, sound: true }, { level: 1, big: true, sound: true },
+  { level: 2, big: false, sound: true }, { level: 1, big: true, sound: false },
+];
 const MAX_SIM_SECONDS = 900;
 
 function mulberry32(a) {
@@ -50,10 +59,27 @@ function makeEl(id, win, errors) {
   return el;
 }
 
-function runOnce(width, seed) {
+function makeAudio(counter) {
+  const param = () => ({ value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {}, linearRampToValueAtTime() {} });
+  const node = kind => { counter.nodes[kind] = (counter.nodes[kind] || 0) + 1; return { connect: x => x, start() {}, stop() {}, gain: param(), frequency: param(), type: '', buffer: null }; };
+  return class AC {
+    constructor() { counter.created++; this.state = 'running'; this.currentTime = 0; this.sampleRate = 8000; this.destination = {}; }
+    createGain() { return node('gain'); } createOscillator() { return node('osc'); }
+    createBufferSource() { return node('src'); } createBiquadFilter() { return node('filter'); }
+    createBuffer(c, n) { return { getChannelData: () => new Float32Array(n) }; }
+    resume() {}
+  };
+}
+
+function win_key(k) { currentDoc.dispatch('keydown', { key: k }); }
+let currentDoc = null;
+
+function runOnce(width, seed, v) {
   const errors = [];
   const rnd = mulberry32(seed);
-  const win = { innerWidth: width, innerHeight: width < 640 ? 800 : 800, devicePixelRatio: 2, scrollY: 0, _l: {} };
+  const audio = { created: 0, nodes: {} };
+  const win = { innerWidth: width, innerHeight: 800, devicePixelRatio: 2, scrollY: 0, _l: {}, __BAR_PROBE__: true };
+  win.AudioContext = makeAudio(audio);
   win.addEventListener = (t, fn) => { (win._l[t] = win._l[t] || []).push(fn); };
 
   const els = {};
@@ -65,6 +91,7 @@ function runOnce(width, seed) {
     querySelector: getEl,
     createElement() { const c = makeEl('#offscreen', win, errors); return c; },
     addEventListener(t, fn) { (docListeners[t] = docListeners[t] || []).push(fn); },
+    dispatch(t, ev) { for (const fn of docListeners[t] || []) fn(ev || {}); },
   };
 
   // Timer palsu supaya endTimer (900 ms) bisa dimajukan tanpa menunggu.
@@ -75,6 +102,8 @@ function runOnce(width, seed) {
 
   let rafCb = null;
   const store = {};
+  if (!v.sound) store['bom-air-rimba-sound'] = '0';
+  currentDoc = document;
   const sandbox = {
     window: win, document, console,
     Math: Object.assign(Object.create(Math), { random: rnd }),
@@ -90,13 +119,51 @@ function runOnce(width, seed) {
   catch (e) { errors.push('exception saat boot: ' + e.stack); return { errors }; }
 
   const map = getEl('#map'), start = getEl('#startOv'), end = getEl('#endOv'), goBtn = getEl('#goBtn');
+  const probe = win.__BAR_PROBE__;
+  if (typeof probe !== 'object') { errors.push('pengait uji tidak terpasang'); return { errors }; }
   if (start.hidden) errors.push('layar awal tidak tampil saat boot');
-  // Layar awal harus punya aturan dan tombol mulai.
+  // Suara tidak boleh dibuat sebelum ada gestur pengguna.
+  for (let i = 0; i < 30; i++) { now += 16; if (rafCb) { const cb = rafCb; rafCb = null; cb(now); } }
+  if (audio.created !== 0) errors.push('AudioContext dibuat sebelum gestur pengguna');
+
+  // Tingkat kesulitan lewat UI: Normal harus sama persis dengan brief.
+  getEl('#lvl0').dispatch('click'); getEl('#lvl2').dispatch('click');
+  getEl('#lvl' + v.level).dispatch('click');
+  const prm = probe.params(), ex = EXPECT[v.level];
+  if (prm.p !== ex.p || prm.wind !== ex.wind || JSON.stringify(prm.sparks) !== JSON.stringify(ex.sparks)) errors.push('parameter tingkat ' + v.level + ' salah: ' + JSON.stringify(prm));
+  if (prm.baseP !== 0.17) errors.push('BASE_P berubah: ' + prm.baseP);
+  if (getEl('#lvl' + v.level).attrs['aria-pressed'] !== 'true') errors.push('tombol tingkat tidak ditandai');
+  if (prm.windStr > 1 || prm.windStr <= 0) errors.push('kekuatan angin di luar batas: ' + prm.windStr);
+
+  // Radius tiap jenis bom: petak yang dibasahi harus sama dengan hitungan geometri independen.
+  const g = probe.grid(), flam = i => g.type[i] >= 2;
+  const cells = [];
+  for (let y = 0; y < g.rows; y++) for (let x = 4; x < g.cols - 2 - 4; x++) if (flam(y * g.cols + x)) cells.push([x, y]);
+  const A = cells[0], B = cells.find(c => Math.hypot(c[0] - A[0], c[1] - A[1]) >= 11);
+  const expected = ([cx, cy], R) => { let n = 0; for (let y = 0; y < g.rows; y++) for (let x = 0; x < g.cols; x++) if (flam(y * g.cols + x) && Math.hypot(x + 0.5 - (cx + 0.5), y + 0.5 - (cy + 0.5)) <= R) n++; return n; };
+  const wet = () => { let n = 0; for (let i = 0; i < g.st.length; i++) if (g.st[i] === 3) n++; return n; };
+  if (A && B) {
+    let w0 = wet(); probe.impactAt(A[0], A[1], 0); const d0 = wet() - w0;
+    w0 = wet(); probe.impactAt(B[0], B[1], 1); const d1 = wet() - w0;
+    if (d0 !== expected(A, 2.5)) errors.push(`bom biasa membasahi ${d0} petak, seharusnya ${expected(A, 2.5)}`);
+    if (d1 !== expected(B, 3.6)) errors.push(`bom besar membasahi ${d1} petak, seharusnya ${expected(B, 3.6)}`);
+    if (expected(B, 3.6) <= 0 || expected(A, 2.5) <= 0) errors.push('uji radius tidak bermakna (0 petak)');
+  } else errors.push('tidak ada dua titik uji untuk bom');
+  // newGame ulang agar permainan mulai bersih: klik tingkat yang sama saat state ready.
+  getEl('#lvl' + v.level).dispatch('click');
+
+  // Tombol 2 memilih bom besar, 1 bom biasa.
+  win_key('2'); if (probe.bombKind() !== 1) errors.push('tombol 2 tidak memilih bom besar');
+  win_key('1'); if (probe.bombKind() !== 0) errors.push('tombol 1 tidak memilih bom biasa');
+  if (v.big) win_key('2');
+
   goBtn.dispatch('click');
+  if (v.sound && audio.created !== 1) errors.push('AudioContext harus dibuat tepat sekali setelah klik, dibuat: ' + audio.created);
+  if (!v.sound && audio.created !== 0) errors.push('AudioContext dibuat padahal suara mati');
   if (!start.hidden) errors.push('layar awal tidak tertutup setelah klik Mulai');
 
   const dt = 1000 / 60;
-  let ts = 0, frames = 0, clicks = 0;
+  let ts = now, frames = 0, clicks = 0; // stempel waktu rAF harus terus naik
   const maxFrames = Math.ceil(MAX_SIM_SECONDS * 60);
   try {
     while (frames < maxFrames && end.hidden) {
@@ -127,15 +194,18 @@ function runOnce(width, seed) {
   }
   const cvs = map.getContext();
   if (cvs.__calls.arc + cvs.__calls.ellipse === 0) errors.push('canvas tidak pernah menggambar');
+  if (v.sound && !((audio.nodes.osc || 0) > 0 && (audio.nodes.src || 0) > 0)) errors.push('tidak ada suara yang dibunyikan selama permainan: ' + JSON.stringify(audio.nodes));
+  if (!v.sound && Object.keys(audio.nodes).length) errors.push('ada node audio padahal suara mati');
   return { errors, frames, clicks, score: getEl('#endScore').textContent, pct: getEl('#endPct').textContent, grid: map.width && `${map.width}x${map.height}` };
 }
 
 const widths = WIDTHS.length ? WIDTHS : [1200, 400];
 let failed = false;
 for (const w of widths) {
-  for (let r = 0; r < RUNS_PER_WIDTH; r++) {
-    const res = runOnce(w, 1000 + r * 7919 + w);
-    const tag = `lebar ${w} run ${r + 1}`;
+  for (let r = 0; r < VARIANTS.length; r++) {
+    const v = VARIANTS[r];
+    const res = runOnce(w, 1000 + r * 7919 + w, v);
+    const tag = `lebar ${w} tingkat ${v.level}${v.big ? ' +bom besar' : ''}${v.sound ? '' : ' tanpa suara'}`;
     if (res.errors.length) {
       failed = true;
       console.error(`GAGAL ${tag}`);

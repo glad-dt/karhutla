@@ -83,6 +83,29 @@ canvas{display:block;cursor:crosshair;touch-action:none}
 .stars svg{width:38px;height:38px}
 .endstats{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 .best{font:400 15px/1.2 var(--display);color:var(--water)}
+.seg{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.segbtn{font:400 14px/1 var(--display);padding:7px 12px;border:3px solid var(--ink);border-radius:10px;background:var(--panel2);color:var(--text);box-shadow:0 3px 0 var(--ink);cursor:pointer}
+.segbtn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.segbtn:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.segbtn[aria-pressed="true"]{background:var(--water);color:var(--ink)}
+.tank .seg{justify-content:flex-start;margin-top:6px}
+.tank .segbtn{padding:5px 9px;font-size:13px;box-shadow:0 2px 0 var(--ink)}
+.btn.small{font-size:14px;padding:7px 12px}
+.opt{display:flex;flex-direction:column;gap:6px;align-items:center}
+@media (max-width:759px){
+  /* HP: peta tepat di bawah judul, kartu statistik di bawah peta, overlay memenuhi layar */
+  .app{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:8px;
+    grid-template-areas:
+    "brand brand brand brand brand brand brand brand btns btns btns btns"
+    "stage stage stage stage stage stage stage stage stage stage stage stage"
+    "score score score score score score score score score score score score"
+    "lost lost lost lost lost lost time time time time time time"
+    "wind wind wind wind wind wind tank tank tank tank tank tank"}
+  .hud{display:contents}
+  .stagewrap{grid-area:stage;min-width:0}
+  .overlay{position:fixed;z-index:10;padding:max(14px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(14px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+  .toast{z-index:5}
+}
 @media (max-width:420px){.btn{padding:8px 11px;font-size:15px}.brand h1{font-size:21px}.sheet{padding:14px 14px;gap:9px}.rules{gap:5px;font-size:13px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -129,6 +152,10 @@ canvas{display:block;cursor:crosshair;touch-action:none}
         <svg class="drop" viewBox="0 0 24 28" aria-hidden="true"><defs><clipPath id="dc1"><rect id="dr1" x="0" y="0" width="24" height="28"/></clipPath></defs><path d="M12 2C12 2 3.5 12 3.5 18a8.5 8.5 0 0 0 17 0C20.5 12 12 2 12 2Z" fill="#10132a" opacity=".55"/><path d="M12 2C12 2 3.5 12 3.5 18a8.5 8.5 0 0 0 17 0C20.5 12 12 2 12 2Z" fill="#38b6ff" clip-path="url(#dc1)"/><path d="M12 2C12 2 3.5 12 3.5 18a8.5 8.5 0 0 0 17 0C20.5 12 12 2 12 2Z" fill="none" stroke="#10132a" stroke-width="2.4" stroke-linejoin="round"/></svg>
         <svg class="drop" viewBox="0 0 24 28" aria-hidden="true"><defs><clipPath id="dc2"><rect id="dr2" x="0" y="0" width="24" height="28"/></clipPath></defs><path d="M12 2C12 2 3.5 12 3.5 18a8.5 8.5 0 0 0 17 0C20.5 12 12 2 12 2Z" fill="#10132a" opacity=".55"/><path d="M12 2C12 2 3.5 12 3.5 18a8.5 8.5 0 0 0 17 0C20.5 12 12 2 12 2Z" fill="#38b6ff" clip-path="url(#dc2)"/><path d="M12 2C12 2 3.5 12 3.5 18a8.5 8.5 0 0 0 17 0C20.5 12 12 2 12 2Z" fill="none" stroke="#10132a" stroke-width="2.4" stroke-linejoin="round"/></svg>
       </div>
+      <div class="seg" role="group" aria-label="Jenis bom">
+        <button class="segbtn" id="bomb0" type="button" aria-pressed="true" title="Radius 2,5 petak, pakai 1 isi (tombol 1)">Biasa</button>
+        <button class="segbtn" id="bomb1" type="button" aria-pressed="false" title="Radius lebih lebar, pakai 2 isi (tombol 2)">Besar</button>
+      </div>
     </div>
   </header>
   <main class="stagewrap" id="stageWrap">
@@ -146,11 +173,19 @@ canvas{display:block;cursor:crosshair;touch-action:none}
             <li>Tangki muat 3 bom dan terisi pelan. Percikan api baru muncul berkala.</li>
             <li>Asap yang melewati garis batas negara di kanan bikin tetangga protes.</li>
           </ul>
+          <div class="opt"><span class="label">Tingkat</span>
+            <div class="seg" role="group" aria-label="Tingkat kesulitan">
+              <button class="segbtn" id="lvl0" type="button" aria-pressed="false">Mudah</button>
+              <button class="segbtn" id="lvl1" type="button" aria-pressed="true">Normal</button>
+              <button class="segbtn" id="lvl2" type="button" aria-pressed="false">Sulit</button>
+            </div>
+          </div>
+          <button class="btn ghost small" id="sndBtn" type="button">Suara: hidup</button>
           <button class="btn big" id="goBtn" type="button">Mulai terbang</button>
         </div>
       </div>
       <div class="overlay" id="pauseOv" hidden>
-        <div class="sheet"><h2>Jeda</h2><button class="btn big" id="resumeBtn" type="button">Lanjut</button></div>
+        <div class="sheet"><h2>Jeda</h2><button class="btn ghost small" id="sndBtn2" type="button">Suara: hidup</button><button class="btn big" id="resumeBtn" type="button">Lanjut</button></div>
       </div>
       <div class="overlay" id="endOv" hidden>
         <div class="sheet">
@@ -181,6 +216,7 @@ const E = {
   endScore:$('#endScore'), endPct:$('#endPct'), endMsg:$('#endMsg'), endStats:$('#endStats'), endBest:$('#endBest'), stars:$('#stars')
 };
 const drops = [0, 1, 2].map(i => $('#dr' + i));
+const lvlBtns = [0, 1, 2].map(i => $('#lvl' + i)), bombBtns = [0, 1].map(i => $('#bomb' + i)), sndBtns = [$('#sndBtn'), $('#sndBtn2')];
 
 const HA = 4, R_BOMB = 2.5, WET_TICKS = 28, TANK_MAX = 3, TANK_REFILL = 3.5;
 const PLANE_SPEED = 30, FALL_TIME = 0.5, BASE_P = 0.17, BORDER_COLS = 2;
@@ -190,7 +226,18 @@ const S_OK = 0, S_FIRE = 1, S_ASH = 2, S_WET = 3;
 const NB = [[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];
 const DIRS = ['Timur','Tenggara','Selatan','Barat Daya','Barat','Barat Laut','Utara','Timur Laut'];
 const INK = '#10132a', TAU = Math.PI * 2;
-const BEST_KEY = 'bom-air-rimba-best';
+const BEST_KEY = 'bom-air-rimba-best', LEVEL_KEY = 'bom-air-rimba-level', SOUND_KEY = 'bom-air-rimba-sound';
+const R_BIG = 3.6, COST_BIG = 2;
+/* Tingkat kesulitan. Normal harus sama persis dengan tabel konstanta di brief. */
+const LEVELS = [
+  { name: 'Mudah', p: 0.8, wind: 0.8, sparks: [6, 14, 22, 31] },
+  { name: 'Normal', p: 1, wind: 1, sparks: SPARKS },
+  { name: 'Sulit', p: 1.2, wind: 1.15, sparks: [6, 12, 18, 25, 32, 40, 47, 53] },
+];
+const BOMBS = [
+  { r: R_BOMB, cost: 1, speed: PLANE_SPEED, size: 1 },
+  { r: R_BIG, cost: COST_BIG, speed: PLANE_SPEED * 0.8, size: 1.35 },
+];
 const fmt = n => Math.round(n).toLocaleString('id-ID');
 
 let cols = 40, rows = 26, N = 0, cs = 16;
@@ -198,6 +245,7 @@ let type, st, age, wetL, vari, since;
 let totalFlam = 0, fireCount = 0, ashCount = 0, burnList = [];
 let state = 'ready', simT = 0, animT = 0, tickAcc = 0, ticks = 0, last = 0;
 let tank = TANK_MAX, bombsUsed = 0, sparkIdx = 0, sparkDue = SPARKS[0];
+let level = 1, bombKind = 0, soundOn = true, sparkTimes = SPARKS, ac = null, master = null;
 let windDeg = 0, windVis = 0, windStr = 0.7, wx = 1, wy = 0, nextWind = 15;
 let particles = [], rings = [], texts = [], planes = [], bombs = [], spots = [], swooshes = [];
 let hover = null, base = null, spr = {}, endTimer = 0, toastTimer = 0;
@@ -244,8 +292,8 @@ function newGame() {
   for (let i = 0; i < N; i++) if (type[i] >= T_GRASS) totalFlam++;
   simT = 0; animT = 0; tickAcc = 0; ticks = 0; tank = TANK_MAX; bombsUsed = 0;
   neighborCount = 0; lastNeighbor = -99;
-  sparkIdx = 0; sparkDue = SPARKS[0];
-  windDeg = ((rnd() * 8) | 0) * 45; windVis = windDeg; windStr = 0.55 + rnd() * 0.4; nextWind = 12 + rnd() * 6;
+  sparkTimes = LEVELS[level].sparks; sparkIdx = 0; sparkDue = sparkTimes[0];
+  windDeg = ((rnd() * 8) | 0) * 45; windVis = windDeg; windStr = Math.min(1, (0.55 + rnd() * 0.4) * LEVELS[level].wind); nextWind = 12 + rnd() * 6;
   setWindVec();
   particles = []; rings = []; texts = []; planes = []; bombs = []; spots = [];
   swooshes = [];
@@ -407,7 +455,7 @@ function addText(x, y, txt, color) { texts.push({ x, y, t: 0, max: 1.5, txt, col
 
 function tick() {
   ticks++;
-  const burning = burnList.slice(), notIgn = new Float32Array(N).fill(1), s = windStr;
+  const burning = burnList.slice(), notIgn = new Float32Array(N).fill(1), s = windStr, lp = LEVELS[level].p;
   for (const i of burning) {
     const bx = i % cols, by = (i / cols) | 0;
     for (let k = 0; k < 8; k++) {
@@ -418,7 +466,7 @@ function tick() {
       const diag = NB[k][0] !== 0 && NB[k][1] !== 0;
       const dot = (NB[k][0] * wx + NB[k][1] * wy) / (diag ? 1.4142 : 1);
       let m = 1 + s * 1.7 * dot; if (m < 0.08) m = 0.08;
-      let p = BASE_P * m * (type[j] === T_GRASS ? 1.35 : 1) * (diag ? 0.7 : 1);
+      let p = BASE_P * lp * m * (type[j] === T_GRASS ? 1.35 : 1) * (diag ? 0.7 : 1);
       if (p > 0.95) p = 0.95;
       notIgn[j] *= 1 - p;
     }
@@ -445,7 +493,7 @@ function tick() {
   for (const j of ign) if (st[j] === S_OK) ignite(j);
   recount();
   if (fireCount === 0) {
-    if (sparkIdx >= SPARKS.length && spots.length === 0) endGame();
+    if (sparkIdx >= sparkTimes.length && spots.length === 0) endGame();
     else if (sparkDue - simT > 2) sparkDue = simT + 2;
   }
 }
@@ -471,7 +519,7 @@ function placeInitialFires() {
 }
 function fireSpark() {
   const n = sparkIdx < 3 ? 1 : 2;
-  sparkIdx++; sparkDue = sparkIdx < SPARKS.length ? SPARKS[sparkIdx] : Infinity;
+  sparkIdx++; sparkDue = sparkIdx < sparkTimes.length ? sparkTimes[sparkIdx] : Infinity;
   for (let k = 0; k < n; k++) {
     const i = pickCell(c => type[c] >= T_GRASS && st[c] === S_OK);
     if (i < 0) continue;
@@ -480,39 +528,43 @@ function fireSpark() {
     addText(cellX(i), cellY(i) - cs * 1.2, 'Api baru!', '#ffd23f');
   }
   recount();
+  sfx('spark');
   toast(n > 1 ? 'Dua percikan api muncul di titik baru!' : 'Percikan api muncul di titik baru!');
 }
 function changeWind() {
   const opts = [-90, -45, -45, 45, 45, 90, 180];
   windDeg += opts[(Math.random() * opts.length) | 0];
-  windStr = 0.5 + Math.random() * 0.5;
+  windStr = Math.min(1, (0.5 + Math.random() * 0.5) * LEVELS[level].wind);
   nextWind = simT + 13 + Math.random() * 8;
   setWindVec();
+  sfx('wind');
   toast('Angin berubah, kini menuju ' + DIRS[(((Math.round(windDeg / 45)) % 8) + 8) % 8]);
 }
 
 /* ---------- bombing ---------- */
 function requestBomb(px, py) {
-  if (tank < 1) {
-    toast('Tangki kosong, tunggu terisi');
+  const bk = BOMBS[bombKind];
+  if (tank < bk.cost) {
+    toast(bombKind ? 'Bom besar butuh ' + bk.cost + ' isi tangki' : 'Tangki kosong, tunggu terisi');
     E.tank.classList.remove('shake'); void E.tank.offsetWidth; E.tank.classList.add('shake');
+    sfx('empty');
     return;
   }
   const W = canvas.width, H = canvas.height;
   px = Math.max(0, Math.min(W - 1, px)); py = Math.max(0, Math.min(H - 1, py));
-  tank -= 1; bombsUsed++;
+  tank -= bk.cost; bombsUsed++;
   const dir = px < W / 2 ? 1 : -1;
-  planes.push({ x: dir > 0 ? -3.5 * cs : W + 3.5 * cs, y: Math.max(cs * 0.9, py - 1.7 * cs), dir, tx: px, ty: py, dropped: false });
+  planes.push({ x: dir > 0 ? -3.5 * cs : W + 3.5 * cs, y: Math.max(cs * 0.9, py - 1.7 * cs), dir, tx: px, ty: py, dropped: false, kind: bombKind });
 }
-function impact(px, py) {
-  const fx = px / cs, fy = py / cs;
+function impact(px, py, kind) {
+  const R = BOMBS[kind || 0].r, fx = px / cs, fy = py / cs;
   let saved = 0, wetted = 0;
-  const x0 = Math.max(0, Math.floor(fx - R_BOMB - 1)), x1 = Math.min(cols - 1, Math.ceil(fx + R_BOMB + 1));
-  const y0 = Math.max(0, Math.floor(fy - R_BOMB - 1)), y1 = Math.min(rows - 1, Math.ceil(fy + R_BOMB + 1));
+  const x0 = Math.max(0, Math.floor(fx - R - 1)), x1 = Math.min(cols - 1, Math.ceil(fx + R + 1));
+  const y0 = Math.max(0, Math.floor(fy - R - 1)), y1 = Math.min(rows - 1, Math.ceil(fy + R + 1));
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
     const i = y * cols + x;
     if (type[i] < T_GRASS) continue;
-    if (Math.hypot(x + 0.5 - fx, y + 0.5 - fy) > R_BOMB) continue;
+    if (Math.hypot(x + 0.5 - fx, y + 0.5 - fy) > R) continue;
     if (st[i] === S_FIRE) {
       st[i] = S_WET; wetL[i] = WET_TICKS; since[i] = animT; saved++;
       for (let k = 0; k < 2; k++) particles.push({ kind: 'steam', x: cellX(i) + (Math.random() - 0.5) * cs, y: cellY(i), vx: (Math.random() - 0.5) * cs, vy: -cs * (0.8 + Math.random()), t: 0, max: 0.9 + Math.random() * 0.6, s: cs * 0.35 });
@@ -520,12 +572,13 @@ function impact(px, py) {
     else if (st[i] === S_WET) wetL[i] = WET_TICKS;
   }
   recount();
-  addRing(px, py, cs * 0.3, R_BOMB * cs * 1.05, 0.55, 'rgba(255,255,255,.9)', cs * 0.14);
-  addRing(px, py, cs * 0.2, R_BOMB * cs * 0.75, 0.45, 'rgba(56,182,255,.8)', cs * 0.2);
+  addRing(px, py, cs * 0.3, R * cs * 1.05, 0.55, 'rgba(255,255,255,.9)', cs * 0.14);
+  addRing(px, py, cs * 0.2, R * cs * 0.75, 0.45, 'rgba(56,182,255,.8)', cs * 0.2);
   for (let k = 0; k < 36; k++) {
     const a = Math.random() * TAU, sp = (2 + Math.random() * 5) * cs;
     particles.push({ kind: 'drop', x: px, y: py, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.6 - cs * 2, g: 14 * cs, t: 0, max: 0.5 + Math.random() * 0.3, s: cs * (0.08 + Math.random() * 0.1) });
   }
+  sfx('splash', kind);
   if (saved > 0) addText(px, py - cs * 0.8, '+' + fmt(saved * HA) + ' ha', '#ffffff');
   else if (wetted > 0) addText(px, py - cs * 0.8, 'Zona basah', '#bfe9ff');
 }
@@ -569,10 +622,11 @@ function updateFx(dt) {
   for (let k = texts.length - 1; k >= 0; k--) { texts[k].t += dt; if (texts[k].t >= texts[k].max) texts.splice(k, 1); }
   for (let k = planes.length - 1; k >= 0; k--) {
     const p = planes[k];
-    p.x += p.dir * PLANE_SPEED * cs * dt;
+    p.x += p.dir * BOMBS[p.kind].speed * cs * dt;
     if (!p.dropped && (p.dir > 0 ? p.x >= p.tx : p.x <= p.tx)) {
       p.dropped = true;
-      bombs.push({ x: p.tx, y0: p.y, y1: p.ty, t: 0 });
+      bombs.push({ x: p.tx, y0: p.y, y1: p.ty, t: 0, kind: p.kind });
+      sfx('drop');
       for (let n = 0; n < 12; n++) particles.push({ kind: 'drop', x: p.tx, y: p.y + cs * 0.4, vx: -p.dir * (1 + Math.random() * 3) * cs, vy: (Math.random() - 0.2) * cs * 2, g: 10 * cs, t: 0, max: 0.4 + Math.random() * 0.3, s: cs * (0.06 + Math.random() * 0.07) });
     }
     if (p.dir > 0 ? p.x > canvas.width + 4 * cs : p.x < -4 * cs) planes.splice(k, 1);
@@ -580,7 +634,7 @@ function updateFx(dt) {
   for (let k = bombs.length - 1; k >= 0; k--) {
     const b = bombs[k];
     b.t += dt;
-    if (b.t >= FALL_TIME) { if (state === 'play') impact(b.x, b.y1); bombs.splice(k, 1); }
+    if (b.t >= FALL_TIME) { if (state === 'play') impact(b.x, b.y1, b.kind); bombs.splice(k, 1); }
   }
 }
 
@@ -606,14 +660,14 @@ function bodyPath(u) {
 }
 function ell(x, y, rx, ry, rot) { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot || 0, 0, TAU); }
 function drawPlane(p) {
-  const u = cs * 1.05, y = p.y + Math.sin(animT * 7 + p.x * 0.01) * cs * 0.06;
+  const u = cs * 1.05 * BOMBS[p.kind].size, y = p.y + Math.sin(animT * 7 + p.x * 0.01) * cs * 0.06;
   ctx.fillStyle = 'rgba(10,20,10,.22)'; ell(p.x + p.dir * cs * 0.2, p.ty + cs * 0.2, u * 1.3, u * 0.28); ctx.fill();
   ctx.save(); ctx.translate(p.x, y); ctx.scale(p.dir, 1); ctx.rotate(-0.04);
   ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(1.5, cs * 0.08); ctx.strokeStyle = INK;
   ctx.fillStyle = '#e8452c';
   ctx.beginPath(); ctx.moveTo(-1.0 * u, -0.2 * u); ctx.lineTo(-1.5 * u, -0.85 * u); ctx.lineTo(-1.15 * u, -0.85 * u); ctx.lineTo(-0.55 * u, -0.3 * u); ctx.closePath(); ctx.fill(); ctx.stroke();
   ell(-1.15 * u, 0, 0.38 * u, 0.1 * u); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#ffd23f'; bodyPath(u); ctx.fill();
+  ctx.fillStyle = p.kind ? '#ffb347' : '#ffd23f'; bodyPath(u); ctx.fill();
   ctx.save(); bodyPath(u); ctx.clip(); ctx.fillStyle = '#e8452c'; ctx.fillRect(-1.6 * u, 0.02 * u, 3.2 * u, 0.13 * u); ctx.restore();
   bodyPath(u); ctx.stroke();
   ctx.fillStyle = '#38b6ff'; ell(-0.1 * u, 0.42 * u, 0.55 * u, 0.13 * u); ctx.fill(); ctx.stroke();
@@ -682,7 +736,7 @@ function render() {
   }
   ctx.globalAlpha = 1;
   for (const b of bombs) {
-    const u = b.t / FALL_TIME, y = b.y0 + (b.y1 - b.y0) * u * u, r = cs * (0.28 + 0.22 * u);
+    const u = b.t / FALL_TIME, y = b.y0 + (b.y1 - b.y0) * u * u, r = cs * (0.28 + 0.22 * u) * BOMBS[b.kind].size;
     ctx.fillStyle = 'rgba(10,20,10,.25)'; ell(b.x, b.y1, cs * 0.3 * (0.4 + u), cs * 0.12 * (0.4 + u)); ctx.fill();
     ctx.fillStyle = '#38b6ff'; ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1.5, cs * 0.08);
     ctx.beginPath(); ctx.arc(b.x, y, r, 0, TAU); ctx.fill(); ctx.stroke();
@@ -699,7 +753,7 @@ function render() {
   }
   ctx.globalAlpha = 1;
   if (hover && state === 'play') {
-    const ok = tank >= 1, r = R_BOMB * cs;
+    const ok = tank >= BOMBS[bombKind].cost, r = BOMBS[bombKind].r * cs;
     ctx.save();
     ctx.fillStyle = ok ? 'rgba(56,182,255,.2)' : 'rgba(255,93,93,.15)';
     ctx.strokeStyle = ok ? 'rgba(255,255,255,.95)' : 'rgba(255,93,93,.9)';
@@ -753,11 +807,12 @@ function updateGame(dt) {
   if (simT >= nextWind) changeWind();
   tickAcc += dt;
   while (tickAcc >= 1) { tickAcc -= 1; tick(); if (state !== 'play') return; }
-  if (sparkIdx < SPARKS.length && simT >= sparkDue) fireSpark();
+  if (sparkIdx < sparkTimes.length && simT >= sparkDue) fireSpark();
 }
 function begin() {
   state = 'play'; E.startOv.hidden = true; E.endOv.hidden = true;
   placeInitialFires();
+  sfx('start');
   toast('Tiga titik api menyala. Klik peta untuk bom air.', 3600);
 }
 function endGame() {
@@ -767,15 +822,17 @@ function endGame() {
   const stars = pct >= 85 ? 3 : pct >= 65 ? 2 : pct >= 35 ? 1 : 0;
   const msgs = ['Hutan habis terbakar. Coba bom lebih awal di depan arah angin.', 'Banyak yang hangus, tapi api berhasil dihentikan.', 'Sebagian besar hutan selamat.', 'Hutan nyaris utuh. Api tidak sempat meluas.'];
   let best = 0, isBest = false;
-  try { best = +localStorage.getItem(BEST_KEY) || 0; } catch (e) {}
-  if (saved > best) { isBest = true; try { localStorage.setItem(BEST_KEY, String(saved)); } catch (e) {} }
+  const bestKey = level === 1 ? BEST_KEY : BEST_KEY + '-' + LEVELS[level].name.toLowerCase();
+  try { best = +localStorage.getItem(bestKey) || 0; } catch (e) {}
+  if (saved > best) { isBest = true; try { localStorage.setItem(bestKey, String(saved)); } catch (e) {} }
   E.endScore.textContent = fmt(saved);
   E.endPct.textContent = pct + '% hutan masih utuh';
   E.endMsg.textContent = msgs[stars];
-  E.endStats.textContent = 'Bom terpakai ' + bombsUsed + ' · Durasi ' + lastTime + ' · Protes tetangga ' + neighborCount + 'x';
+  E.endStats.textContent = 'Tingkat ' + LEVELS[level].name + ' · Bom terpakai ' + bombsUsed + ' · Durasi ' + lastTime + ' · Protes tetangga ' + neighborCount + 'x';
   E.endBest.textContent = isBest ? 'Rekor baru!' : 'Rekor terbaik ' + fmt(best) + ' ha';
   const star = on => '<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="12,2 15,9 22,9.5 16.5,14.5 18.5,22 12,18 5.5,22 7.5,14.5 2,9.5 9,9" fill="' + (on ? '#ffd23f' : '#161b36') + '" stroke="#10132a" stroke-width="1.8" stroke-linejoin="round"/></svg>';
   E.stars.innerHTML = [0, 1, 2].map(i => star(i < stars)).join('');
+  sfx('end', stars);
   endTimer = setTimeout(() => { E.endOv.hidden = false; }, 900);
 }
 function togglePause() {
@@ -790,6 +847,54 @@ function frame(ts) {
   requestAnimationFrame(frame);
 }
 
+/* ---------- audio (sintetis, dibuat hanya setelah gestur pengguna) ---------- */
+function ensureAudio() {
+  if (!soundOn) return;
+  if (!ac) {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      ac = new AC(); master = ac.createGain(); master.gain.value = 0.5; master.connect(ac.destination);
+    } catch (e) { ac = null; return; }
+  }
+  if (ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }
+}
+function tone(f0, f1, dur, type, vol, delay) {
+  const t = ac.currentTime + (delay || 0), o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.02);
+}
+function noise(dur, fc, vol) {
+  const t = ac.currentTime, n = Math.max(1, Math.floor(ac.sampleRate * dur)), buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  const src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+  src.buffer = buf; f.type = 'lowpass'; f.frequency.value = fc;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(f); f.connect(g); g.connect(master); src.start(t);
+}
+function sfx(name, arg) {
+  if (!ac || !soundOn || ac.state === 'closed') return;
+  try {
+    if (name === 'drop') tone(900, 280, FALL_TIME, 'sine', 0.1);
+    else if (name === 'splash') { noise(arg ? 0.7 : 0.5, arg ? 1300 : 2200, 0.35); tone(arg ? 160 : 230, 80, 0.3, 'sine', 0.2); }
+    else if (name === 'empty') tone(170, 110, 0.18, 'square', 0.07);
+    else if (name === 'spark') { noise(0.25, 5000, 0.14); tone(600, 900, 0.12, 'triangle', 0.07); }
+    else if (name === 'wind') { noise(0.6, 700, 0.12); tone(300, 480, 0.4, 'sine', 0.05); }
+    else if (name === 'start') { tone(392, 392, 0.12, 'triangle', 0.12); tone(523, 523, 0.2, 'triangle', 0.12, 0.12); }
+    else if (name === 'end') { const notes = [330, 392, 494, 659]; for (let i = 0; i < 2 + arg; i++) tone(notes[i], notes[i], 0.22, 'triangle', 0.12, i * 0.14); }
+  } catch (e) {}
+}
+
+/* ---------- pilihan pemain ---------- */
+function saveSetting(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
+function paintLevel() { lvlBtns.forEach((b, i) => b.setAttribute('aria-pressed', i === level ? 'true' : 'false')); }
+function paintBomb() { bombBtns.forEach((b, i) => b.setAttribute('aria-pressed', i === bombKind ? 'true' : 'false')); }
+function paintSound() { sndBtns.forEach(b => { b.textContent = 'Suara: ' + (soundOn ? 'hidup' : 'mati'); }); }
+function setLevel(i) { level = i; saveSetting(LEVEL_KEY, i); paintLevel(); if (state === 'ready') newGame(); }
+function setBomb(i) { bombKind = i; paintBomb(); }
+function setSound(on) { soundOn = on; saveSetting(SOUND_KEY, on ? 1 : 0); paintSound(); ensureAudio(); }
+
 /* ---------- input ---------- */
 function toCanvas(e) {
   const r = canvas.getBoundingClientRect();
@@ -798,17 +903,25 @@ function toCanvas(e) {
 canvas.addEventListener('pointermove', e => { hover = toCanvas(e); });
 canvas.addEventListener('pointerleave', () => { hover = null; });
 canvas.addEventListener('pointerdown', e => {
-  e.preventDefault();
+  e.preventDefault(); ensureAudio();
   const p = toCanvas(e);
   hover = e.pointerType === 'mouse' ? p : null;
   if (state === 'play') requestBomb(p.x, p.y);
 });
-E.goBtn.addEventListener('click', begin);
-E.againBtn.addEventListener('click', () => { newGame(); begin(); });
+lvlBtns.forEach((b, i) => b.addEventListener('click', () => setLevel(i)));
+bombBtns.forEach((b, i) => b.addEventListener('click', () => setBomb(i)));
+sndBtns.forEach(b => b.addEventListener('click', () => setSound(!soundOn)));
+E.goBtn.addEventListener('click', () => { ensureAudio(); begin(); });
+E.againBtn.addEventListener('click', () => { ensureAudio(); newGame(); begin(); });
 E.restartBtn.addEventListener('click', newGame);
 E.pauseBtn.addEventListener('click', togglePause);
 E.resumeBtn.addEventListener('click', togglePause);
-document.addEventListener('keydown', e => { if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') togglePause(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') togglePause();
+  else if (e.key === '1') setBomb(0);
+  else if (e.key === '2') setBomb(1);
+  else if (e.key === 'm' || e.key === 'M') setSound(!soundOn);
+});
 document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play') togglePause(); });
 let rsT = 0;
 const onResize = () => { clearTimeout(rsT); rsT = setTimeout(layout, 120); };
@@ -816,6 +929,19 @@ window.addEventListener('resize', onResize);
 window.addEventListener('orientationchange', onResize);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
 
+try {
+  const lv = +localStorage.getItem(LEVEL_KEY);
+  if (lv >= 0 && lv < LEVELS.length && localStorage.getItem(LEVEL_KEY) !== null) level = lv;
+  soundOn = localStorage.getItem(SOUND_KEY) !== '0';
+} catch (e) {}
+paintLevel(); paintBomb(); paintSound();
+/* Pengait uji: hanya aktif bila harness uji menyetel window.__BAR_PROBE__ = true sebelum skrip dimuat. */
+if (window.__BAR_PROBE__) window.__BAR_PROBE__ = {
+  params: () => ({ p: LEVELS[level].p, wind: LEVELS[level].wind, sparks: sparkTimes.slice(), baseP: BASE_P, windStr }),
+  grid: () => ({ cols, rows, cs, type, st }),
+  bombKind: () => bombKind,
+  begin, impactAt: (cx, cy, kind) => impact((cx + 0.5) * cs, (cy + 0.5) * cs, kind),
+};
 newGame();
 requestAnimationFrame(frame);
 })();
