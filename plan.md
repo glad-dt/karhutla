@@ -1,15 +1,16 @@
 # Plan: Bom Air Rimba
 
-Dasar: `BRIEF.md`. Tidak ada kode di repo ini sekarang, dan `bom-air-rimba-standalone.html` yang disebut brief belum ada di sini.
+Dasar: `BRIEF.md` (tidak diubah, sesuai permintaan).
 
-## Prasyarat
+## Keputusan setelah brief
 
-Taruh `bom-air-rimba-standalone.html` di root repo. Tanpa file itu, brief hanya bisa dipenuhi dengan menulis ulang game dari spesifikasi, yang jauh lebih besar dan berisiko menghidupkan lagi bug yang sudah diperbaiki (radius negatif pada `arc`/`ellipse`, penyetelan `R_BOMB` dan `BASE_P`).
+- Eksekusi memakai Next.js untuk deploy ke Vercel. Ini bertabrakan dengan aturan keras "tanpa framework", jadi game tetap satu file HTML mandiri di `public/bom-air-rimba.html` dan Next.js hanya menyajikannya di `/` lewat rewrite. Aturan brief untuk file game tetap berlaku penuh dan dijaga oleh `tools/check-rules.js`.
+- File sumber sudah ada (disalin dari unggahan, 47 KB). Tidak ada penulisan ulang.
 
 ## Pendekatan
 
 1. Baca file sumber penuh. Cocokkan dengan brief: konstanta, struktur IIFE, aturan keras. Catat selisihnya.
-2. Bangun harness uji asap Node (`tools/smoke.js`, di luar file game) dengan tiruan `document`, `canvas`, `requestAnimationFrame`, pemeriksa radius negatif, dan lebar jendela 1200 dan 400. Jalankan sebagai garis dasar sebelum mengubah apa pun.
+2. Bangun harness uji asap Node (`tools/smoke.js`, di luar file game; dijalankan dengan `npm test`) dengan tiruan `document`, `canvas`, `requestAnimationFrame`, pemeriksa radius negatif, dan lebar jendela 1200 dan 400. Jalankan sebagai garis dasar sebelum mengubah apa pun.
 3. Tambah pemeriksa aturan keras otomatis: satu file, tanpa em dash, tanpa sumber eksternal selain Google Fonts, JS lulus `node --check`.
 4. Kerjakan bagian "Tugas" satu per satu, tiap perubahan kecil dan diuji ulang: kesulitan, efek suara Web Audio, bom/pesawat kedua, rapikan tampilan HP.
 5. Verifikasi manual di browser sungguhan (lebar 400 dan desktop): tata letak HUD, keterbacaan toast, konsol bersih.
